@@ -61,7 +61,7 @@ st.write('**Maturity Level:**', level)
 st.write('**Top recommendations:**')
 for r in rec:
     st.write('-', r)
-    
+
 # --- Simulation-Based Performance Insights ---
 import os
 
@@ -92,6 +92,86 @@ if csv_path and os.path.exists(csv_path):
         st.dataframe(df_sim.head(10))
 else:
     st.info('⚠️ Simulation data not available for this maturity level. Run `simulation_runner.py` to generate it.')
+
+st.markdown("---")
+st.subheader("📈 Scenario Comparison — Baseline vs Connected vs Predictive")
+
+# Paths to all scenario CSVs
+paths = {
+    "Baseline": "simulation/precomputed_results/level1_baseline.csv",
+    "Connected": "simulation/precomputed_results/level3_connected.csv",
+    "Predictive": "simulation/precomputed_results/level4_predictive.csv"
+}
+
+data_summary = []
+for name, p in paths.items():
+    if os.path.exists(p):
+        df = pd.read_csv(p)
+        data_summary.append({
+            "Scenario": name,
+            "Throughput (units/hr)": df["throughput_per_hr"].mean(),
+            "Lead Time (min)": df["avg_lead_time_min"].mean()
+        })
+
+if data_summary:
+    df_sum = pd.DataFrame(data_summary)
+    st.dataframe(df_sum)
+
+    # Plot comparison bars
+    st.bar_chart(df_sum.set_index("Scenario")[["Throughput (units/hr)", "Lead Time (min)"]])
+else:
+    st.info("Comparison data not available. Run all simulations first.")
+
+st.markdown("---")
+st.subheader("💰 Estimated ROI from Industry 4.0 Adoption")
+
+# Simple ROI estimation assumptions
+revenue_per_unit = 10000     # ₹ per unit produced
+op_cost_per_hr = 1500        # ₹ operating cost per hour
+
+if len(data_summary) == 3:
+    base = data_summary[0]
+    best = data_summary[-1]
+    delta_throughput = best["Throughput (units/hr)"] - base["Throughput (units/hr)"]
+    delta_lead = base["Lead Time (min)"] - best["Lead Time (min)"]
+
+    added_revenue = delta_throughput * revenue_per_unit * 8   # per 8-hr shift
+    savings = (delta_lead / 60) * op_cost_per_hr              # time saved cost
+    roi = (added_revenue + savings) / (op_cost_per_hr * 8) * 100  # percent ROI per shift
+
+    st.write(f"**Added Revenue per Shift:** ₹{added_revenue:,.0f}")
+    st.write(f"**Operational Savings:** ₹{savings:,.0f}")
+    st.write(f"**Estimated ROI per Shift:** {roi:.1f}%")
+else:
+    st.info("Run all scenarios for ROI estimation.")
+
+st.markdown("---")
+st.subheader("🕸️ KPI Radar Comparison")
+
+if len(data_summary) == 3:
+    import matplotlib.pyplot as plt
+    from math import pi
+
+    kpi_df = pd.DataFrame(data_summary).set_index("Scenario")
+    # Normalize Lead Time inversely for visual comparison
+    kpi_df["Efficiency (1/Lead Time)"] = 1 / kpi_df["Lead Time (min)"]
+
+    categories = ["Throughput (units/hr)", "Efficiency (1/Lead Time)"]
+    N = len(categories)
+    angles = [n / float(N) * 2 * pi for n in range(N)]
+    angles += angles[:1]
+
+    fig, ax = plt.subplots(figsize=(5,5), subplot_kw=dict(polar=True))
+    for scenario, row in kpi_df.iterrows():
+        values = [row[c] for c in categories]
+        values += values[:1]
+        ax.plot(angles, values, linewidth=2, label=scenario)
+        ax.fill(angles, values, alpha=0.1)
+    ax.set_xticks(angles[:-1])
+    ax.set_xticklabels(categories)
+    ax.legend(loc="upper right")
+    st.pyplot(fig)
+
 
 
 # --- Data Table ---
