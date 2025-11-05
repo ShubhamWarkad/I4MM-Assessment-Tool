@@ -61,6 +61,38 @@ st.write('**Maturity Level:**', level)
 st.write('**Top recommendations:**')
 for r in rec:
     st.write('-', r)
+    
+# --- Simulation-Based Performance Insights ---
+import os
+
+st.subheader('📊 Simulation-Based Performance Insights')
+
+# Map maturity levels to precomputed simulation CSVs
+level_to_csv = {
+    'Level 1 — Manual / Basic': 'simulation/precomputed_results/level1_baseline.csv',
+    'Level 2 — Digital Initiation': 'simulation/precomputed_results/level1_baseline.csv',
+    'Level 3 — Connected Operations': 'simulation/precomputed_results/level3_connected.csv',
+    'Level 4 — Predictive / Smart': 'simulation/precomputed_results/level4_predictive.csv',
+    'Level 5 — Smart / Autonomous': 'simulation/precomputed_results/level4_predictive.csv'
+}
+
+csv_path = level_to_csv.get(level)
+
+if csv_path and os.path.exists(csv_path):
+    df_sim = pd.read_csv(csv_path)
+    st.success(f"Simulation results for: **{level}**")
+    st.write(f"**Average Throughput (units/hour):** {df_sim['throughput_per_hr'].mean():.2f}")
+    st.write(f"**Average Lead Time (minutes):** {df_sim['avg_lead_time_min'].mean():.1f}")
+
+    # Show comparison chart
+    st.bar_chart(df_sim[['throughput_per_hr', 'avg_lead_time_min']])
+
+    # Show raw data toggle
+    with st.expander('See detailed simulation data'):
+        st.dataframe(df_sim.head(10))
+else:
+    st.info('⚠️ Simulation data not available for this maturity level. Run `simulation_runner.py` to generate it.')
+
 
 # --- Data Table ---
 df = pd.DataFrame({
